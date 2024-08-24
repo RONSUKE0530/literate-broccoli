@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ボタン配置カスタム</title>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    #container {
+      width: 310mm;
+      height: 210mm;
+      position: relative;
+      border: 1px solid black;
+      margin-bottom: 20px;
+    }
+    .circle {
+      position: absolute;
+      border: 2px solid blue;
+      border-radius: 50%;
+      cursor: move;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: blue;
+      font-weight: bold;
+    }
+    #coordinates {
+      margin-top: 20px;
+    }
+    .coordinate {
+      margin-bottom: 10px;
+    }
+    .coordinate input {
+      width: 60px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div id="coordinates"></div>
+  <button onclick="saveAsPNG()">画像として保存</button>
+
+  <script>
+    const container = document.getElementById('container');
+    const coordinatesDiv = document.getElementById('coordinates');
+    const circles = [];
+
+    // 円を作成する関数 (ドラッグ＆ドロップ対応)
+    function createCircle(diameter, x, y, index) {
+      const circle = document.createElement('div');
+      circle.className = 'circle';
+      circle.style.width = `${diameter}mm`;
+      circle.style.height = `${diameter}mm`;
+      circle.style.left = `${x}mm`;
+      circle.style.top = `${y}mm`;
+      circle.innerText = index + 1;  // 円の中心に番号を表示
+
+      container.appendChild(circle);
+      circles.push({ element: circle, diameter, x, y });
+
+      circle.addEventListener('mousedown', startDragging);
+      updateCoordinates();
+    }
+
+    // 円をドラッグする関数
+    function startDragging(e) {
+      const circle = e.target;
+      const startX = e.clientX - circle.offsetLeft;
+      const startY = e.clientY - circle.offsetTop;
+
+      function dragMove(e) {
+        let newX = e.clientX - startX;
+        let newY = e.clientY - startY;
+
+        const maxX = container.clientWidth - circle.offsetWidth;
+        const maxY = container.clientHeight - circle.offsetHeight;
+
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+
+        circle.style.left = `${newX}px`;
+        circle.style.top = `${newY}px`;
+
+        updateCoordinates();
+      }
+
+      function stopDragging() {
+        document.removeEventListener('mousemove', dragMove);
+        document.removeEventListener('mouseup', stopDragging);
+      }
+
+      document.addEventListener('mousemove', dragMove);
+      document.addEventListener('mouseup', stopDragging);
+    }
+
+    // 座標を更新して表示する関数
+    function updateCoordinates() {
+      coordinatesDiv.innerHTML = '';
+      circles.forEach((circle, index) => {
+        const x = (circle.element.offsetLeft / (container.offsetWidth / 310)).toFixed(2);
+        const y = (circle.element.offsetTop / (container.offsetHeight / 210)).toFixed(2);
+
+        const coordinateDiv = document.createElement('div');
+        coordinateDiv.className = 'coordinate';
+        coordinateDiv.innerHTML = `
+          円${index + 1}: 
+          X: <input id="x-${index}" type="number" value="${x}" step="1" onchange="updateCirclePosition(${index}, 'x')">mm 
+          Y: <input id="y-${index}" type="number" value="${y}" step="1" onchange="updateCirclePosition(${index}, 'y')">mm
+        `;
+
+        coordinatesDiv.appendChild(coordinateDiv);
+      });
+    }
+
+    // 座標を入力値で更新する関数
+    function updateCirclePosition(index, axis) {
+      const circle = circles[index];
+      const inputX = document.getElementById(`x-${index}`);
+      const inputY = document.getElementById(`y-${index}`);
+
+      if (axis === 'x') {
+        const newValue = parseFloat(inputX.value);
+        circle.element.style.left = `${newValue}mm`;
+      } else if (axis === 'y') {
+        const newValue = parseFloat(inputY.value);
+        circle.element.style.top = `${newValue}mm`;
+      }
+
+      updateCoordinates();
+    }
+
+    // 画像として保存する関数
+    function saveAsPNG() {
+      html2canvas(container).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'circles_layout.png';
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    }
+
+    // 初期配置 (ご提供いただいた座標情報を使用)
+    const circlePositions = [
+      { x: 51, y: 37 },
+      { x: 84, y: 40 },
+      { x: 114, y: 65 },
+      { x: 157, y: 63 },
+      { x: 187, y: 53 },
+      { x: 215, y: 48 },
+      { x: 247, y: 52 },
+      { x: 158, y: 95 },
+      { x: 186, y: 86 },
+      { x: 216, y: 80 },
+      { x: 246, y: 82 },
+      { x: 166, y: 28 },
+      { x: 112, y: 120 }, // 大きくしたい円
+      { x: 154, y: 128 },
+      { x: 183, y: 113 }
+    ];
+
+    // 各座標に基づいて円を作成
+    circlePositions.forEach((position, index) => {
+      const diameter = (position.x === 112 && position.y === 120) ? 30 : 24;
+      createCircle(diameter, position.x, position.y, index);
+    });
+  </script>
+</body>
+</html>
